@@ -19,35 +19,48 @@ db.connect(function(err){
 });
 
 function start(){
-  showTables(function(tables){
-    tables.forEach(table => {
-      //console.log(table['Tables_in_' + Constants.db_name]);
-      showCreateTable(table['Tables_in_' + Constants.db_name], function(createTable){
-        getDataFromCreateTable(JSON.stringify(createTable), table['Tables_in_' + Constants.db_name], function(tableData){
-          writeFile(Constants.template_paths, tableData, table['Tables_in_' + Constants.db_name]);
-        })
+  let pathList = getPathList(Constants.template_paths);
+
+  getDataFromCreateTable(function(tables){
+    pathList.forEach(path => {
+      readFile(path, function(data){
+        if(path.includes("example-table")){
+          tables.forEach(table => {
+            let newData = elabFileTable(table, data);
+            let newPath = path.replaceAll("template", "output").replaceAll("example-table", table.name.toLowerCase() + "-table");
+            writeFile(newPath, newData);
+          });
+        }
+        else{
+          data = elabFileDatabase(tables, data);
+          let newPath = path.replaceAll("template", "output");
+          writeFile(newPath, data);
+        }
       });
     });
   });
 }
 
+function getPathList(startingList){
+  let pathList = [];
+
+  startingList.forEach(path => {
+    let fs_path = fs.statSync(path);
+    if(fs_path.isFile()){
+      pathList.push(path);
+    }
+    else{
+      let fileList = fs.readdirSync(path);
+      for(const file of fileList){
+        pathList.push(`${path}/${file}`);
+        pathList = getPathList(pathList);
+      }
+    }
+  });
+  return pathList;
+}
+
 // SHOW TABLES
-function showTables(callback){
-  let sql = "SHOW TABLES;";
-
-  executeQuery(sql, function(result){
-    callback(result);
-  });
-}
-
-function showCreateTable(table, callback){
-  let sql = "SHOW CREATE TABLE `"+ Constants.db_name + "`.`" + table +"`;";
-
-  executeQuery(sql, function(result){
-    callback(result);
-  });
-}
-
 function executeQuery(query, callback){
   if(!Connected){
     console.log("DB: Not connected!");
@@ -61,20 +74,53 @@ function executeQuery(query, callback){
   });
 }
 
-function getDataFromCreateTable(createTable, tableName, callback){
-  let ct = createTable;
-  let data = [];
+function showTables(callback){
+  let sql = "SHOW TABLES;";
 
-  //console.log(ct + "\n");
-  ct = ct.replaceAll("[{\"Table\":\"" + tableName + "\",\"Create Table\":\"CREATE TABLE `" + tableName + "` (\\n  ", "");
+  executeQuery(sql, function(result){
+    let tables = [];
+    result.forEach(table => {
+      tables.push(table['Tables_in_' + Constants.db_name]);
+    });
+    callback(tables);
+  });
+}
+
+function showCreateTables(tables, createTables, callback){
+  if(tables.length == 0){
+    callback(createTables);
+    return;
+  }
+
+  let sql = "SHOW CREATE TABLE `"+ Constants.db_name + "`.`" + tables[0] +"`; ";
+  tables = tables.slice(1);
+
+  executeQuery(sql, function(result){
+    createTables.push(result[0]);
+    showCreateTables(tables, createTables, callback);
+  });
+}
+
+function elabCreateTable(createTable){
+  let data = {"name": createTable.Table, "attrib": []};
+
+  let ct = createTable['Create Table'];
+  //console.log(ct);
+  ct = ct.replaceAll("CREATE TABLE `" + createTable.Table + "` (\n", "");
   ct = ct.replaceAll(" COLLATE utf8mb4_unicode_520_ci", "");
   ct = ct.replaceAll(" COLLATE=utf8mb4_unicode_520_ci", "");
-  ct = ct.replaceAll(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", "");
+  //ct = ct.replaceAll("ENGINE=InnoDB", "");
+  ct = ct.replaceAll("DEFAULT", "");
+  ct = ct.replaceAll("CHARSET=utf8mb4", "");
   ct = ct.replaceAll("int unsigned", "int_unsigned");
-  ct = ct.replaceAll("\\n  ", "\n");
+  ct = ct.replaceAll("  `", "`");
+  //ct = ct.replaceAll("\\n  ", "\n");
+  //console.log(ct);
   ct = ct.split("\n");
+
   ct.forEach(line => {
-    if(!line.includes("PRIMARY KEY") && !line.includes("KEY") && !line.includes("CONSTRAINT")){
+    if(!line.includes("PRIMARY KEY") && !line.includes("KEY") && !line.includes("CONSTRAINT") && !line.includes("ENGINE")){
+      //console.log(line);
       let newData = {
         attrib_name: line.split(" ")[0].slice(1, -1),
         attrib_type: line.split(" ")[1],
@@ -82,79 +128,118 @@ function getDataFromCreateTable(createTable, tableName, callback){
         isAutoIncrement: line.includes("AUTO_INCREMENT"),
       };
 
-      data.push(newData);
-      //console.log(line);
-      //console.log(newData);
+      data.attrib.push(newData);
     }
   });
 
-  //console.log("\n\n");
-  callback(data);
+  //console.log(data);
+  return data;
 }
 
-function writeFile(templatePaths, tableData, tableName){
-  templatePaths.forEach(templatePath => {
-    readTemplate(templatePath, function(templateData){
-      templateData = templateData.replaceAll("$[UC_name]", tableName);
-      templateData = templateData.replaceAll("$[LC_name]", tableName.toLowerCase());
-
-      let reg = /\$\[for_attrib \([a-z\s\$\[\]\_\:\=\;]*\)\]/g;
-      if(reg.test(templateData)){
-        let rawDataPattern = templateData.match(reg)[0];
-        let dataPattern = rawDataPattern.replaceAll("$[for_attrib (", "").replaceAll(")]", "");
-        let msgData = "";
-        //console.log(dataPattern);
-        tableData.forEach(data => {
-          let msg = dataPattern;
-          msg = msg.replaceAll("$[attrib_name]", data.attrib_name);
-          //msg = msg.replaceAll("$[attrib_type]", data.attrib_type);
-
-          switch(data.attrib_type){
-            case "int":
-            case "int_unsigned":
-            case "tinyint(1)":
-            case "tinyint_unsigned":
-            case "float":
-            case "datetime":
-              msg = msg.replaceAll("$[attrib_type]", "number");
-              msg = msg.replaceAll("$[attrib_init]", "0");
-            break;  
-
-            case "char(50)":
-            case "char(200)":
-            case /char\([0-9]*\)/:
-              msg = msg.replaceAll("$[attrib_type]", "string");
-              msg = msg.replaceAll("$[attrib_init]", "\"\"");
-            break;
-          }
-          msgData += msg + "\n  ";
-        });
-
-        templateData = templateData.replaceAll(reg, msgData);
-      }
-
-      let fileName = templatePath.replaceAll("template", "output").replaceAll("name", tableName.toLowerCase())
-      fs.writeFile(fileName, templateData, function(err){
-        if (err)
-          console.log(err);
-        else {
-          console.log(fileName + " written successfully\n");
-        }
+function getDataFromCreateTable(callback){
+  showTables(function(tables){
+    showCreateTables(tables, [], function(createTables){
+      let tablesData = [];
+      createTables.forEach(createTable => {
+        let data = elabCreateTable(createTable);
+        tablesData.push(data);
       });
-      //console.log(templateData);
-
+      callback(tablesData);
     });
   });
 }
 
-function readTemplate(path, callback){
-  if(path == "./template/name.spec.ts"){
-    callback("import { $[UC_name] } from './$[LC_name]';\n\ndescribe('$[UC_name]', () => {\n  it('should create an instance', () => {\n    expect(new $[UC_name]()).toBeTruthy();\n  });\n});");
+function readFile(path, callback){
+  fs.readFile(path, 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    callback(data);
+  });
+}
+
+function elabFileTable(table, data){
+  data = data.replaceAll("$[UC_name]", table.name);
+  data = data.replaceAll("$[LC_name]", table.name.toLowerCase());
+
+  let reg = /\$\[for_attrib \([a-zA-Z\s\n\$\[\]\{\}\-\_\.\:\=\;\<\>\"\/\'\,\!\*]*\)\]/g;
+
+  if(reg.test(data)){
+    let rawDataPattern = data.match(reg)[0];
+    let dataPattern = rawDataPattern.replaceAll("$[for_attrib (", "").replaceAll(")]", "");
+    let msgData = "";
+
+    //console.log(dataPattern);
+    table.attrib.forEach(dataTable => {
+      let msg = dataPattern;
+      msg = msg.replaceAll("$[attrib_name]", dataTable.attrib_name);
+      //msg = msg.replaceAll("$[attrib_type]", data.attrib_type);
+
+      switch(dataTable.attrib_type){
+        case "int":
+        case "int_unsigned":
+        case "tinyint(1)":
+        case "tinyint_unsigned":
+        case "float":
+        case "datetime":
+          msg = msg.replaceAll("$[attrib_type]", "number");
+          msg = msg.replaceAll("$[attrib_init]", "0");
+        break;  
+
+        case "char(50)":
+        case "char(200)":
+        case /char\([0-9]*\)/:
+          msg = msg.replaceAll("$[attrib_type]", "string");
+          msg = msg.replaceAll("$[attrib_init]", "\"\"");
+        break;
+      }
+      msgData += msg + "\n  ";
+    });
+
+    data = data.replaceAll(reg, msgData);
   }
-  else if(path == "./template/name.ts"){
-    callback("export class $[UC_name]{\n  $[for_attrib (public $[attrib_name]: $[attrib_type] = $[attrib_init];)]\n}");
+  
+  return data;
+}
+
+function elabFileDatabase(tables, data){
+  let reg = /\$\[for_table \([a-zA-Z\s\n\$\[\]\{\}\-\_\.\:\=\;\<\>\"\/\'\,\!\*]*\)\]/g;
+
+  if(reg.test(data)){
+    let rawDataPattern = data.match(reg)[0];
+    let dataPattern = rawDataPattern.replaceAll("$[for_table (", "").replaceAll(")]", "");
+    let msgData = "";
+
+    //console.log(dataPattern);
+    tables.forEach(table => {
+      let msg = dataPattern;
+      msg = msg.replaceAll("$[UC_table_name]", table.name);
+      msg = msg.replaceAll("$[LC_table_name]", table.name.toLowerCase());
+      msgData += msg + "\n  ";
+    });
+
+    data = data.replaceAll(reg, msgData);
   }
-  else{
-    callback("");
+  return data;
+}
+
+function writeFile(name, data){
+  let path = ".";
+  let pieces = name.split("/");
+  for(let i = 0; i < pieces.length - 1; i++){
+    path += "/" + pieces[i];
+    if (!fs.existsSync(path)) {
+      fs.mkdirSync(path, 0744);
+    }
   }
+  path += pieces[pieces.length - 1];
+
+  fs.writeFile(name, data, function(err){
+    if (err)
+      console.log(err);
+    else {
+      console.log(name + " written successfully");
+    }
+  });
 }

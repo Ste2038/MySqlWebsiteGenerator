@@ -1,0 +1,47 @@
+<table mat-table [dataSource]="dataSource" class="mat-elevation-z8 table">
+  <!-- idConto Column -->
+  <ng-container matColumnDef="idConto">
+    <th mat-header-cell *matHeaderCellDef>idConto</th>
+    <td mat-cell *matCellDef="let element"> {{element.idConto}} </td>
+  </ng-container>
+  
+  <!-- nome Column -->
+  <ng-container matColumnDef="nome">
+    <th mat-header-cell *matHeaderCellDef>nome</th>
+    <td mat-cell *matCellDef="let element"> {{element.nome}} </td>
+  </ng-container>
+  
+  <!-- valoreIniziale Column -->
+  <ng-container matColumnDef="valoreIniziale">
+    <th mat-header-cell *matHeaderCellDef>valoreIniziale</th>
+    <td mat-cell *matCellDef="let element"> {{element.valoreIniziale}} </td>
+  </ng-container>
+  
+  <!-- idUtente Column -->
+  <ng-container matColumnDef="idUtente">
+    <th mat-header-cell *matHeaderCellDef>idUtente</th>
+    <td mat-cell *matCellDef="let element"> {{element.idUtente}} </td>
+  </ng-container>
+  
+  <!-- idCurrency Column -->
+  <ng-container matColumnDef="idCurrency">
+    <th mat-header-cell *matHeaderCellDef>idCurrency</th>
+    <td mat-cell *matCellDef="let element"> {{element.idCurrency}} </td>
+  </ng-container>
+  
+  <!-- idGruppoConto Column -->
+  <ng-container matColumnDef="idGruppoConto">
+    <th mat-header-cell *matHeaderCellDef>idGruppoConto</th>
+    <td mat-cell *matCellDef="let element"> {{element.idGruppoConto}} </td>
+  </ng-container>
+  
+  <!-- isDeleted Column -->
+  <ng-container matColumnDef="isDeleted">
+    <th mat-header-cell *matHeaderCellDef>isDeleted</th>
+    <td mat-cell *matCellDef="let element"> {{element.isDeleted}} </td>
+  </ng-container>
+  
+  
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>

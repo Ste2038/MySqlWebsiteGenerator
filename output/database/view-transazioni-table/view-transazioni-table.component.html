@@ -1,0 +1,71 @@
+<table mat-table [dataSource]="dataSource" class="mat-elevation-z8 table">
+  <!-- idTransazione Column -->
+  <ng-container matColumnDef="idTransazione">
+    <th mat-header-cell *matHeaderCellDef>idTransazione</th>
+    <td mat-cell *matCellDef="let element"> {{element.idTransazione}} </td>
+  </ng-container>
+  
+  <!-- dateTime Column -->
+  <ng-container matColumnDef="dateTime">
+    <th mat-header-cell *matHeaderCellDef>dateTime</th>
+    <td mat-cell *matCellDef="let element"> {{element.dateTime}} </td>
+  </ng-container>
+  
+  <!-- importo Column -->
+  <ng-container matColumnDef="importo">
+    <th mat-header-cell *matHeaderCellDef>importo</th>
+    <td mat-cell *matCellDef="let element"> {{element.importo}} </td>
+  </ng-container>
+  
+  <!-- idCategoria Column -->
+  <ng-container matColumnDef="idCategoria">
+    <th mat-header-cell *matHeaderCellDef>idCategoria</th>
+    <td mat-cell *matCellDef="let element"> {{element.idCategoria}} </td>
+  </ng-container>
+  
+  <!-- idContoFrom Column -->
+  <ng-container matColumnDef="idContoFrom">
+    <th mat-header-cell *matHeaderCellDef>idContoFrom</th>
+    <td mat-cell *matCellDef="let element"> {{element.idContoFrom}} </td>
+  </ng-container>
+  
+  <!-- idContoTo Column -->
+  <ng-container matColumnDef="idContoTo">
+    <th mat-header-cell *matHeaderCellDef>idContoTo</th>
+    <td mat-cell *matCellDef="let element"> {{element.idContoTo}} </td>
+  </ng-container>
+  
+  <!-- idCurrency Column -->
+  <ng-container matColumnDef="idCurrency">
+    <th mat-header-cell *matHeaderCellDef>idCurrency</th>
+    <td mat-cell *matCellDef="let element"> {{element.idCurrency}} </td>
+  </ng-container>
+  
+  <!-- nota Column -->
+  <ng-container matColumnDef="nota">
+    <th mat-header-cell *matHeaderCellDef>nota</th>
+    <td mat-cell *matCellDef="let element"> {{element.nota}} </td>
+  </ng-container>
+  
+  <!-- descrizione Column -->
+  <ng-container matColumnDef="descrizione">
+    <th mat-header-cell *matHeaderCellDef>descrizione</th>
+    <td mat-cell *matCellDef="let element"> {{element.descrizione}} </td>
+  </ng-container>
+  
+  <!-- isTrasferimento Column -->
+  <ng-container matColumnDef="isTrasferimento">
+    <th mat-header-cell *matHeaderCellDef>isTrasferimento</th>
+    <td mat-cell *matCellDef="let element"> {{element.isTrasferimento}} </td>
+  </ng-container>
+  
+  <!-- isDeleted Column -->
+  <ng-container matColumnDef="isDeleted">
+    <th mat-header-cell *matHeaderCellDef>isDeleted</th>
+    <td mat-cell *matCellDef="let element"> {{element.isDeleted}} </td>
+  </ng-container>
+  
+  
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>
