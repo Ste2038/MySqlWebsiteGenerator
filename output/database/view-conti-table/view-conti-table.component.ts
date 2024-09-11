@@ -1,5 +1,10 @@
-import { Component } from '@angular/core';
-import { Conti } from '../../classes/conti-table';
+import { Component, AfterViewInit, ViewChild } from '@angular/core';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
+
+import { ServerService } from 'src/app/services/server.service';
+import { Conti } from 'src/app/classes/conti-table';
 
 @Component({
   selector: 'app-view-conti-table',
@@ -7,7 +12,7 @@ import { Conti } from '../../classes/conti-table';
   styleUrls: ['./view-conti-table.component.css'],
 })
 
-export class ViewContiTableComponent {
+export class ViewContiTableComponent implements AfterViewInit{
   displayedColumns: string[] = ['idConto',
   'nome',
   'valoreIniziale',
@@ -16,5 +21,21 @@ export class ViewContiTableComponent {
   'idGruppoConto',
   'isDeleted',
   ];
-  dataSource = [];
+  dataSource: MatTableDataSource<Conti> = new MatTableDataSource();
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
+  constructor(private server: ServerService){}
+  
+  ngAfterViewInit(): void {
+    let component = this;
+
+    component.server.selectAllConti(function(conti:Conti[]){
+      component.dataSource = new MatTableDataSource(conti);
+
+      component.dataSource.paginator = component.paginator;
+      component.dataSource.sort = component.sort;
+    });
+  }
 }

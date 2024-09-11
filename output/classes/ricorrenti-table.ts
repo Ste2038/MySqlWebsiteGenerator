@@ -5,5 +5,6 @@ export class Ricorrenti{
   public idCategoria: number = 0;
   public idContoFrom: number = 0;
   public isMonthly: number = 0;
+  public isDeleted: number = 0;
   
 }
